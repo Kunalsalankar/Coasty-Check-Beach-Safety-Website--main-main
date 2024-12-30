@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beach Activities Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+            height: 100vh;
+        }
+
+        .main-container {
+            display: flex;
+            gap: 20px;
+            width: 90%;
+            max-width: 1200px;
+            margin: 20px auto;
+        }
+
+        .form-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            flex: 1;
+        }
+
+        .activities-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            flex: 1.5;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        h1, h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        input, select, textarea {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #1abc9c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0e5144;
+        }
+
+        .activity-list {
+            margin-top: 10px;
+        }
+
+        .activity-item {
+            background: #f9f9f9;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            position: relative;
+        }
+
+        .activity-item h4 {
+            margin: 0 0 5px 0;
+        }
+
+        .actions {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+        }
+
+        .actions button {
+            background: none;
+            border: none;
+            color: #1abc9c;
+            cursor: pointer;
+            margin-left: 5px;
+            width: auto;
+        }
+
+        .actions button:hover {
+            color: #0e5144;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Form -->
+        <div class="form-container">
+            <h1>Add Beach Activities</h1>
+            <select id="beachName">
+                <option value="">Select Beach</option>
+                <option value="Munambam Beach">Munambam Beach</option>
+                <option value="Kuzhupilly Beach">Kuzhupilly Beach</option>
+                <option value="Puthuvype Beach">Puthuvype Beach</option>
+                <option value="Cherai Beach">Cherai Beach</option>
+            </select>
+            <input type="text" id="activityName" placeholder="Activity Name">
+            <select id="activityType">
+                <option value="">Select Activity Type</option>
+                <option value="Water Sports">Water Sports</option>
+                <option value="Beach Games">Beach Games</option>
+                <option value="Relaxation">Relaxation</option>
+                <option value="Fishing">Fishing</option>
+                <option value="Other">Other</option>
+            </select>
+            <textarea id="activityDescription" placeholder="Activity Description"></textarea>
+            <input type="text" id="location" placeholder="Location Details">
+            <input type="time" id="startTime" placeholder="Start Time">
+            <input type="time" id="endTime" placeholder="End Time">
+            <input type="date" id="activityDate" placeholder="Activity Date">
+            <input type="text" id="activityPrice" placeholder="Price (optional)">
+            <input type="text" id="contactInfo" placeholder="Contact Information">
+            <button id="addActivityButton">Add Activity</button>
+        </div>
+        
+        <div class="activities-container">
+            <h1>Existing Beach Activities</h1>
+            <div id="filterSection">
+                <h2>Filter Activities</h2>
+                <select id="beachFilter">
+                    <option value="">All Beaches</option>
+                    <option value="Munambam Beach">Munambam Beach</option>
+                    <option value="Kuzhupilly Beach">Kuzhupilly Beach</option>
+                    <option value="Puthuvype Beach">Puthuvype Beach</option>
+                    <option value="Cherai Beach">Cherai Beach</option>
+                </select>
+            </div>
+            <div class="activity-list" id="activityList"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
+        import { getDatabase, ref, set, push, onValue, remove } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
+
+        // Firebase configuration (replace with your own Firebase config)
+        const firebaseConfig = {
+            apiKey: "AIzaSyA5PPJOvBXrt1BXLXpNirWYLqYTi9PuyGg",
+            authDomain: "finalproject-7d8fd.firebaseapp.com",
+            databaseURL: "https://finalproject-7d8fd-default-rtdb.firebaseio.com/",
+            projectId: "finalproject-7d8fd",
+            storageBucket: "finalproject-7d8fd.appspot.com",
+            messagingSenderId: "1098406126947",
+            appId: "1:1098406126947:web:81cd954a947196683e9f56",
+            measurementId: "G-K0JHYPP2E9"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const activityList = document.getElementById('activityList');
+        const beachFilter = document.getElementById('beachFilter');
+
+        // Add Activity
+        document.getElementById('addActivityButton').addEventListener('click', async () => {
+            const beachName = document.getElementById('beachName').value.trim();
+            const activityName = document.getElementById('activityName').value.trim();
+            const activityType = document.getElementById('activityType').value.trim();
+            const activityDescription = document.getElementById('activityDescription').value.trim();
+            const location = document.getElementById('location').value.trim();
+            const startTime = document.getElementById('startTime').value.trim();
+            const endTime = document.getElementById('endTime').value.trim();
+            const activityDate = document.getElementById('activityDate').value.trim();
+            const activityPrice = document.getElementById('activityPrice').value.trim();
+            const contactInfo = document.getElementById('contactInfo').value.trim();
+
+            if (beachName && activityName && activityType && activityDescription && location && startTime && endTime && activityDate && contactInfo) {
+                try {
+                    const newActivityRef = push(ref(db, 'beach-activities'));
+                    await set(newActivityRef, {
+                        beachName,
+                        activityName,
+                        activityType,
+                        description: activityDescription,
+                        location,
+                        startTime,
+                        endTime,
+                        activityDate,
+                        price: activityPrice || 'Not specified',
+                        contactInfo,
+                        timestamp: Date.now()
+                    });
+                    alert("Activity added successfully!");
+                    
+                    // Clear input fields
+                    document.getElementById('beachName').value = '';
+                    document.getElementById('activityName').value = '';
+                    document.getElementById('activityType').selectedIndex = 0;
+                    document.getElementById('activityDescription').value = '';
+                    document.getElementById('location').value = '';
+                    document.getElementById('startTime').value = '';
+                    document.getElementById('endTime').value = '';
+                    document.getElementById('activityDate').value = '';
+                    document.getElementById('activityPrice').value = '';
+                    document.getElementById('contactInfo').value = '';
+                } catch (error) {
+                    console.error("Error adding activity:", error);
+                    alert("Failed to add activity. Please try again.");
+                }
+            } else {
+                alert("Please fill out all required fields.");
+            }
+        });
+
+        // Fetch and Filter Activities
+        const fetchActivities = () => {
+            onValue(ref(db, 'beach-activities'), (snapshot) => {
+                activityList.innerHTML = '';
+                const selectedBeach = beachFilter.value;
+
+                snapshot.forEach((childSnapshot) => {
+                    const key = childSnapshot.key;
+                    const data = childSnapshot.val();
+
+                    // Filter activities based on selected beach
+                    if (selectedBeach === '' || data.beachName === selectedBeach) {
+                        const activityItem = document.createElement('div');
+                        activityItem.className = 'activity-item';
+                        activityItem.innerHTML = ` 
+                            <h4>${data.activityName} at ${data.beachName}</h4>
+                            <p><strong>Type:</strong> ${data.activityType}</p>
+                            <p><strong>Description:</strong> ${data.description}</p>
+                            <p><strong>Location:</strong> ${data.location}</p>
+                            <p><strong>Date:</strong> ${data.activityDate}</p>
+                            <p><strong>Time:</strong> ${data.startTime} - ${data.endTime}</p>
+                            <p><strong>Price:</strong> ${data.price}</p>
+                            <p><strong>Contact:</strong> ${data.contactInfo}</p>
+                            <small>Added on: ${new Date(data.timestamp).toLocaleString()}</small>
+                            <div class="actions">
+                                <button onclick="deleteActivity('${key}')">Delete</button>
+                            </div>
+                        `;
+                        activityList.appendChild(activityItem);
+                    }
+                });
+            });
+        };
+
+        // Delete Activity
+        window.deleteActivity = (key) => {
+            if (confirm("Are you sure you want to delete this activity?")) {
+                remove(ref(db, 'beach-activities/' + key))
+                    .then(() => {
+                        alert("Activity deleted successfully!");
+                        fetchActivities();
+                    })
+                    .catch((error) => {
+                        console.error("Error deleting activity:", error);
+                        alert("Failed to delete activity.");
+                    });
+            }
+        };
+
+        // Add event listener for beach filter
+        beachFilter.addEventListener('change', fetchActivities);
+
+        fetchActivities();
+    </script>
+</body>
+</html>
